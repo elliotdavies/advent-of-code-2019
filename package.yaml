@@ -1,0 +1,35 @@
+name: aoc2019
+version: 0.1.0.0
+github: "elliotdavies/advent-of-code-2019"
+license: BSD3
+author: "Elliot Davies"
+
+extra-source-files:
+  - README.md
+
+description: Please see the README on GitHub at <https://github.com/elliotdavies/advent-of-code-2019>
+
+default-extensions:
+  - NamedFieldPuns
+  - NoImplicitPrelude
+  - OverloadedStrings
+  - RecordWildCards
+
+dependencies:
+  - base >= 4.7 && < 5
+  - text
+  - rainbow >= 0.34
+
+library:
+  source-dirs: src
+
+executables:
+  aoc2019-exe:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - aoc2019
