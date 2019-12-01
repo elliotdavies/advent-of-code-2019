@@ -2,10 +2,7 @@ module Day01
   ( problem
   ) where
 
-import           Data.Monoid (Sum (..))
-import           Data.Text   (Text)
 import qualified Data.Text   as Text
-import           Debug.Trace (traceShowId)
 import           Prelude
 import           Problem
 
@@ -16,18 +13,17 @@ parser :: Parser In
 parser = fmap read . lines . Text.unpack
 
 part1 :: Solution In Out
-part1 = getSum . foldMap fuel
+part1 = sum . fmap calcFuel
 
-fuel :: Int -> Sum Int
-fuel x = Sum $ (x `div` 3) - 2
+calcFuel :: Int -> Int
+calcFuel x = (x `div` 3) - 2
 
 part2 :: Solution In Out
-part2 = getSum . foldMap go
+part2 = sum . fmap go
   where
-    go :: Int -> Sum Int
     go x =
-      let Sum f = fuel x
-       in if f <= 0 then 0 else Sum f <> go f
+      let fuel = calcFuel x
+       in if fuel <= 0 then 0 else fuel + go fuel
 
 problem :: Problem In Out
 problem =
