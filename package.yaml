@@ -14,12 +14,16 @@ default-extensions:
   - NoImplicitPrelude
   - OverloadedStrings
   - RecordWildCards
+  - LambdaCase
+  - TupleSections
 
 dependencies:
   - base >= 4.7 && < 5
   - text
   - rainbow >= 0.34
   - vector
+  - containers
+  - linear
 
 library:
   source-dirs: src

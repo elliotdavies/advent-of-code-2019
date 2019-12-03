@@ -2,11 +2,11 @@ module Day02
   ( problem
   ) where
 
-import qualified Data.Text   as Text
-import qualified Data.Vector as V
+import qualified Data.Text     as Text
+import qualified Data.Vector   as V
 import           Prelude
 import           Problem
-import           Utils       (mkProgram, readMemory, readOutput, runProgram)
+import           Utils.Intcode (mkProgram, readMemory, readOutput, runProgram)
 
 
 type In = (V.Vector Int, Maybe (Int, Int))
@@ -17,13 +17,13 @@ parser :: Parser In
 parser input =
   let memory:inputs = Text.lines input
    in (parseMemory memory, parseInputs inputs)
- where
-  parseMemory str = V.fromList $ fmap parseToInt $ Text.splitOn "," str
+  where
+    parseMemory str = V.fromList $ fmap parseToInt $ Text.splitOn "," str
 
-  parseInputs []          = Nothing
-  parseInputs [noun,verb] = Just (parseToInt noun, parseToInt verb)
+    parseInputs []          = Nothing
+    parseInputs [noun,verb] = Just (parseToInt noun, parseToInt verb)
 
-  parseToInt = read . Text.unpack
+    parseToInt = read . Text.unpack
 
 
 part1 :: Solution In Out
