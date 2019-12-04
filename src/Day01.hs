@@ -19,11 +19,7 @@ calcFuel :: Int -> Int
 calcFuel x = (x `div` 3) - 2
 
 part2 :: Solution In Out
-part2 = sum . fmap go
-  where
-    go x =
-      let fuel = calcFuel x
-       in if fuel <= 0 then 0 else fuel + go fuel
+part2 = sum . fmap (sum . drop 1 . takeWhile (>= 0) . iterate calcFuel)
 
 problem :: Problem In Out
 problem =
