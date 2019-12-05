@@ -6,10 +6,10 @@ import qualified Data.Text     as Text
 import qualified Data.Vector   as V
 import           Prelude
 import           Problem
-import           Utils.Intcode (mkProgram, readMemory, readOutput, runProgram)
+import           Utils.Intcode (mkProgram, readMemory, runProgram)
 
 
-type In = (V.Vector Int, Maybe (Int, Int))
+type In = (V.Vector Int, [(Int, Int)])
 type Out = V.Vector Int
 
 
@@ -20,25 +20,26 @@ parser input =
   where
     parseMemory str = V.fromList $ fmap parseToInt $ Text.splitOn "," str
 
-    parseInputs []          = Nothing
-    parseInputs [noun,verb] = Just (parseToInt noun, parseToInt verb)
+    parseInputs []          = []
+    parseInputs [noun,verb] = [(1, parseToInt noun), (2, parseToInt verb)]
 
     parseToInt = read . Text.unpack
 
 
 part1 :: Solution In Out
 part1 (memory, inputs) =
-  readMemory $ runProgram $ mkProgram inputs memory
+  readMemory $ runProgram (mkProgram inputs memory) []
 
 
 part2 :: Solution In Out
 part2 (memory, _) =
-  foldr check V.empty [(noun,verb) | noun <- [0..99], verb <- [0..99]]
+  foldr check V.empty [[(1,noun),(2, verb)] | noun <- [0..99], verb <- [0..99]]
   where
     check inputs acc =
-      if readOutput (runProgram $ mkProgram (Just inputs) memory) == target
-         then V.fromList [fst inputs, snd inputs]
-         else acc
+      let program' = runProgram (mkProgram inputs memory) []
+       in if V.head (readMemory program') == target
+           then V.fromList $ fmap snd inputs
+           else acc
 
     target = 19690720
 

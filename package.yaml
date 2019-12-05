@@ -24,6 +24,7 @@ dependencies:
   - vector
   - containers
   - linear
+  - digits
 
 library:
   source-dirs: src

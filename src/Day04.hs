@@ -2,9 +2,9 @@ module Day04
   ( problem
   ) where
 
-import           Data.Char  (digitToInt)
-import           Data.List  (group)
-import qualified Data.Text  as Text
+import           Data.Digits (digits)
+import           Data.List   (group)
+import qualified Data.Text   as Text
 import           Prelude
 import           Problem
 
@@ -22,9 +22,7 @@ part1 (min, max) = findMatching criteria [min..max]
     criteria xs = increasing xs && any ((>= 2) . length) (group xs)
 
 findMatching :: ([Int] -> Bool) -> [Int] -> Int
-findMatching criteria = length . filter criteria . fmap splitNum
-  where
-    splitNum = fmap digitToInt . show
+findMatching criteria = length . filter criteria . fmap (digits 10)
 
 increasing :: [Int] -> Bool
 increasing = go True
