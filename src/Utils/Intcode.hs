@@ -9,7 +9,7 @@ module Utils.Intcode
 import           Data.Digits (digits, unDigits)
 import qualified Data.Map    as Map
 import qualified Data.Vector as V
-import           Prelude     hiding (read)
+import           Prelude     hiding (read, Ordering(..))
 
 import Debug.Trace (traceShowId)
 
@@ -52,6 +52,10 @@ data OpCode
   | Mul
   | In
   | Out
+  | JmpNZ
+  | JmpZ
+  | LT
+  | Eq
   | Halt
   deriving (Show, Enum)
 
@@ -72,39 +76,61 @@ parseOpCode i =
    in (opCode code, modes ++ (repeat Position))
 
 -- Execute a program until it halts. Accepts a program and a list of inputs to
--- be read. Returns the final state and a list of outputs
+-- be read. Returns the final state including a list of outputs
 runProgram :: Program -> [Int] -> Program
 runProgram program@Program{..} inputs =
   let (code, modes) = parseOpCode (valueAt instrPtr memory)
+
+      params n = zip [instrPtr + 1 .. instrPtr + n] modes
+
+      (program', inputs') = case code of
+        Add ->
+          let [p1,p2,p3] = params 3
+              memory' = write (read p1 + read p2) p3
+           in (program { instrPtr = instrPtr + 4, memory = memory' }, inputs)
+
+        Mul ->
+          let [p1,p2,p3] = params 3
+              memory' = write (read p1 * read p2) p3
+           in (program { instrPtr = instrPtr + 4, memory = memory' }, inputs)
+
+        In ->
+          let memory' = write (head inputs) (instrPtr + 1, Position)
+           in (program { instrPtr = instrPtr + 2, memory = memory' }, tail inputs)
+
+        Out ->
+          let [p1] = params 1
+              outputs' = V.snoc outputs $ read p1
+           in (program { instrPtr = instrPtr + 2, outputs = outputs' }, inputs)
+
+        JmpNZ ->
+          let [p1,p2] = params 2
+              instrPtr' = if read p1 /= 0 then read p2 else instrPtr + 3
+           in (program { instrPtr = instrPtr' }, inputs)
+
+        JmpZ ->
+          let [p1,p2] = params 2
+              instrPtr' = if read p1 == 0 then read p2 else instrPtr + 3
+           in (program { instrPtr = instrPtr' }, inputs)
+
+        LT ->
+          let [p1,p2,p3] = params 3
+              memory' = write (if read p1 < read p2 then 1 else 0) p3
+           in (program { instrPtr = instrPtr + 4, memory = memory' }, inputs)
+
+        Eq ->
+          let [p1,p2,p3] = params 3
+              memory' = write (if read p1 == read p2 then 1 else 0) p3
+           in (program { instrPtr = instrPtr + 4, memory = memory' }, inputs)
+
+        Halt ->
+          (program, inputs)
+
   in case code of
-    Add ->
-      let [p1,p2,p3] = zip (next 3) modes
-          memory' = write (read p1 + read p2) p3
-          program' = Program (instrPtr + 4) memory' outputs
-       in runProgram program' inputs
-
-    Mul ->
-      let [p1,p2,p3] = zip (next 3) modes
-          memory' = write (read p1 * read p2) p3
-          program' = Program (instrPtr + 4) memory' outputs
-       in runProgram program' inputs
-
-    In ->
-      let memory' = write (head inputs) (instrPtr + 1, Position)
-          program' = Program (instrPtr + 2) memory' outputs
-       in runProgram program' $ tail inputs
-
-    Out ->
-      let [p1] = zip (next 1) modes
-          outputs' = V.snoc outputs $ read p1
-          program' = Program (instrPtr + 2) memory outputs'
-       in runProgram program' inputs
-
-    Halt -> program
+       Halt -> program'
+       _    -> runProgram program' inputs'
 
   where
-    next n = [instrPtr + 1 .. instrPtr + n] 
-  
     read (i, m) =
       case m of
         Position  -> dereference i memory
