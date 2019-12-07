@@ -1,17 +1,18 @@
 module Utils.Intcode
   ( Program
+  , parseMemory
   , mkProgram
   , runProgram
   , readMemory
   , readOutputs
   ) where
 
+import qualified Data.Text   as Text
 import           Data.Digits (digits, unDigits)
 import qualified Data.Map    as Map
 import qualified Data.Vector as V
 import           Prelude     hiding (read, Ordering(..))
-
-import Debug.Trace (traceShowId)
+import qualified Prelude     as Prelude
 
 
 type Memory = V.Vector Int
@@ -23,6 +24,9 @@ data Program = Program
   , outputs  :: Outputs
   }
   deriving (Show)
+
+parseMemory :: Text.Text -> Memory
+parseMemory = V.fromList . fmap (Prelude.read . Text.unpack) . Text.splitOn ","
 
 -- Construct a new program, optionally overriding some of the memory locations
 mkProgram :: [(Int, Int)] -> Memory -> Program

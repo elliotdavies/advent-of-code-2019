@@ -6,13 +6,13 @@ import qualified Data.Text     as Text
 import qualified Data.Vector   as V
 import           Prelude
 import           Problem
-import           Utils.Intcode (Program, mkProgram, runProgram, readOutputs)
+import           Utils.Intcode (Program, parseMemory, mkProgram, runProgram, readOutputs)
 
 type In = V.Vector Int
 type Out = V.Vector Int
 
 parser :: Parser In
-parser = V.fromList . fmap (read . Text.unpack) . Text.splitOn ","
+parser = parseMemory
 
 part1 :: Solution In Out
 part1 input = readOutputs $ runProgram (mkProgram [] input) [1]

@@ -6,7 +6,7 @@ import qualified Data.Text     as Text
 import qualified Data.Vector   as V
 import           Prelude
 import           Problem
-import           Utils.Intcode (mkProgram, readMemory, runProgram)
+import           Utils.Intcode (parseMemory, mkProgram, readMemory, runProgram)
 
 
 type In = (V.Vector Int, [(Int, Int)])
@@ -18,8 +18,6 @@ parser input =
   let memory:inputs = Text.lines input
    in (parseMemory memory, parseInputs inputs)
   where
-    parseMemory str = V.fromList $ fmap parseToInt $ Text.splitOn "," str
-
     parseInputs []          = []
     parseInputs [noun,verb] = [(1, parseToInt noun), (2, parseToInt verb)]
 
