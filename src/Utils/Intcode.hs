@@ -1,5 +1,6 @@
 module Utils.Intcode
   ( Program
+  , Memory
   , parseMemory
   , mkProgram
   , runProgram
@@ -7,34 +8,37 @@ module Utils.Intcode
   , readOutputs
   ) where
 
-import qualified Data.Text   as Text
-import           Data.Digits (digits, unDigits)
-import qualified Data.Map    as Map
-import qualified Data.Vector as V
-import           Prelude     hiding (read, Ordering(..))
-import qualified Prelude     as Prelude
+import           Data.Digits      (digits, unDigits)
+import qualified Data.Map.Strict  as Map
+import qualified Data.Text        as Text
+import qualified Data.Vector      as V
+import           Prelude          hiding (read, Ordering(..))
+import qualified Prelude          as Prelude
 
+import Debug.Trace (traceShow, traceShowId)
 
-type Memory = V.Vector Int
+type Memory = Map.Map Int Int
 type Outputs = V.Vector Int
 
 data Program = Program
-  { instrPtr :: Int
-  , memory   :: Memory
-  , outputs  :: Outputs
+  { instrPtr      :: Int
+  , relativeBase  :: Int
+  , memory        :: Memory
+  , outputs       :: Outputs
   }
   deriving (Show)
 
 parseMemory :: Text.Text -> Memory
-parseMemory = V.fromList . fmap (Prelude.read . Text.unpack) . Text.splitOn ","
+parseMemory = Map.fromList . zip [0..] . fmap (Prelude.read . Text.unpack) . Text.splitOn ","
 
 -- Construct a new program, optionally overriding some of the memory locations
 mkProgram :: [(Int, Int)] -> Memory -> Program
 mkProgram overrides initialMemory =
   Program
-    { instrPtr = 0
-    , memory   = initialMemory V.// overrides
-    , outputs  = V.empty
+    { instrPtr     = 0
+    , relativeBase = 0
+    , memory       = foldr (\(k,v) acc -> Map.insert k v acc) initialMemory overrides
+    , outputs      = V.empty
     }
 
 readMemory :: Program -> Memory
@@ -43,12 +47,16 @@ readMemory = memory
 readOutputs :: Program -> Outputs
 readOutputs = outputs
 
-data Mode = Position | Immediate
+data Mode
+  = Position
+  | Immediate
+  | Relative
   deriving (Show)
 
 mode :: Int -> Mode
 mode 0 = Position
 mode 1 = Immediate
+mode 2 = Relative
 mode n = error $ "Unrecognised mode: " ++ show n
 
 data OpCode
@@ -60,6 +68,7 @@ data OpCode
   | JmpZ
   | LT
   | Eq
+  | Rel
   | Halt
   deriving (Show, Enum)
 
@@ -87,6 +96,7 @@ runProgram program@Program{..} inputs =
 
       params n = zip [instrPtr + 1 .. instrPtr + n] modes
 
+      -- (program', inputs') = case (traceShow program code) of
       (program', inputs') = case code of
         Add ->
           let [p1,p2,p3] = params 3
@@ -127,6 +137,10 @@ runProgram program@Program{..} inputs =
               memory' = write (if read p1 == read p2 then 1 else 0) p3
            in (program { instrPtr = instrPtr + 4, memory = memory' }, inputs)
 
+        Rel ->
+          let [p1] = params 1
+           in (program { instrPtr = instrPtr + 2, relativeBase = relativeBase + read p1 }, inputs)
+
         Halt ->
           (program, inputs)
 
@@ -139,16 +153,18 @@ runProgram program@Program{..} inputs =
       case m of
         Position  -> dereference i memory
         Immediate -> valueAt i memory
+        Relative  -> dereference (i + relativeBase) memory
 
     write val (i, m) =
       case m of
-        Position -> memory V.// [(valueAt i memory, val)]
+        Position -> Map.insert (valueAt i memory) val memory
         Immediate -> error $ "Write instructions should never be immediate"
+        Relative -> Map.insert (valueAt (i + relativeBase) memory) val memory
 
 -- Retrieve the value at the given memory address
 valueAt :: Int -> Memory -> Int
-valueAt = flip (V.!)
+valueAt = Map.findWithDefault 0
 
 -- Treat the given memory address as a pointer and follow it
 dereference :: Int -> Memory -> Int
-dereference i mem = mem V.! (valueAt i mem)
+dereference i mem = Map.findWithDefault 0 (valueAt i mem) mem

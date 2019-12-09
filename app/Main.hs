@@ -1,6 +1,6 @@
 module Main where
 
-import           Day08   (problem)
+import           Day09   (problem)
 import           Prelude
 import           Problem (run)
 

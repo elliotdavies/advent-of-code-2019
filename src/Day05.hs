@@ -2,13 +2,14 @@ module Day05
   ( problem
   ) where
 
-import qualified Data.Text     as Text
-import qualified Data.Vector   as V
+import qualified Data.Map.Strict as Map
+import qualified Data.Text       as Text
+import qualified Data.Vector     as V
 import           Prelude
 import           Problem
-import           Utils.Intcode (Program, parseMemory, mkProgram, runProgram, readOutputs)
+import           Utils.Intcode   (Program, Memory, parseMemory, mkProgram, runProgram, readOutputs)
 
-type In = V.Vector Int
+type In = Memory
 type Out = V.Vector Int
 
 parser :: Parser In
