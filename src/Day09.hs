@@ -19,7 +19,7 @@ part1 :: Solution In Out
 part1 program = V.toList $ readOutputs $ runProgram program [1]
 
 part2 :: Solution In Out
-part2 input = []
+part2 program = V.toList $ readOutputs $ runProgram program [2]
 
 problem :: Problem In Out
 problem =
