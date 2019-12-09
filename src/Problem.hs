@@ -37,7 +37,7 @@ run problem = do
 
   putStrLn "Part 1"
   runExamples pPart1 pParser pPart1Examples
-  -- runInput pPart1 $ pParser input
+  runInput pPart1 $ pParser input
 
   putStrLn "Part 2"
   runExamples pPart2 pParser pPart2Examples

@@ -15,7 +15,6 @@ import qualified Data.Vector      as V
 import           Prelude          hiding (read, Ordering(..))
 import qualified Prelude          as Prelude
 
-import Debug.Trace (traceShow, traceShowId)
 
 type Memory = Map.Map Int Int
 type Outputs = V.Vector Int
@@ -96,7 +95,6 @@ runProgram program@Program{..} inputs =
 
       params n = zip [instrPtr + 1 .. instrPtr + n] modes
 
-      -- (program', inputs') = case (traceShow program code) of
       (program', inputs') = case code of
         Add ->
           let [p1,p2,p3] = params 3
@@ -109,7 +107,8 @@ runProgram program@Program{..} inputs =
            in (program { instrPtr = instrPtr + 4, memory = memory' }, inputs)
 
         In ->
-          let memory' = write (head inputs) (instrPtr + 1, Position)
+          let [p1] = params 1
+              memory' = write (head inputs) p1
            in (program { instrPtr = instrPtr + 2, memory = memory' }, tail inputs)
 
         Out ->
@@ -153,13 +152,13 @@ runProgram program@Program{..} inputs =
       case m of
         Position  -> dereference i memory
         Immediate -> valueAt i memory
-        Relative  -> dereference (i + relativeBase) memory
+        Relative  -> valueAt (valueAt i memory + relativeBase) memory
 
     write val (i, m) =
       case m of
         Position -> Map.insert (valueAt i memory) val memory
         Immediate -> error $ "Write instructions should never be immediate"
-        Relative -> Map.insert (valueAt (i + relativeBase) memory) val memory
+        Relative -> Map.insert (valueAt i memory + relativeBase) val memory
 
 -- Retrieve the value at the given memory address
 valueAt :: Int -> Memory -> Int
@@ -167,4 +166,4 @@ valueAt = Map.findWithDefault 0
 
 -- Treat the given memory address as a pointer and follow it
 dereference :: Int -> Memory -> Int
-dereference i mem = Map.findWithDefault 0 (valueAt i mem) mem
+dereference i mem = valueAt (valueAt i mem) mem
