@@ -2,9 +2,11 @@ module Utils.Coords
   ( Coords(..)
   , manhattan
   , origin
+  , Grid(..)
   ) where
 
-import           Linear.V2 (V2 (..))
+import qualified Data.Map.Strict as Map
+import           Linear.V2       (V2 (..))
 import           Prelude
 
 
@@ -17,3 +19,5 @@ manhattan :: Coords -> Coords -> Int
 manhattan c1 c2 =
   let V2 x y = c1 - c2
    in abs x + abs y
+
+type Grid a = Map.Map Coords a
