@@ -2,14 +2,14 @@ module Day07
   ( problem
   ) where
 
+import           Control.Monad   (guard)
+import           Data.List       (group, sort)
 import qualified Data.Map.Strict as Map
-import           Control.Monad (guard)
-import           Data.List     (group, sort)
-import qualified Data.Vector   as V
+import qualified Data.Vector     as V
 import           Prelude
 import           Problem
-import           Utils.Intcode (Program, mkProgram, parseMemory, readOutputs,
-                                runProgram)
+import           Utils.Intcode   (Program, ProgramState (..), mkProgram,
+                                  parseMemory, runProgram)
 
 type In = Program
 type Out = Int
@@ -30,9 +30,14 @@ part1 program = maximum $ do
 
   let phases = [p1,p2,p3,p4,p5]
   guard $ unique phases
-  pure $ foldr go 0 phases
+  pure $ foldr (\phase input -> go program [phase,input]) 0 phases
   where
-    go phase input = V.head $ readOutputs $ runProgram program [phase, input]
+    go :: Program -> [Int] -> Int
+    go program inputs =
+      case runProgram program of
+        Halted _         -> error "Should have received output by now"
+        Await continue   -> go (continue $ head inputs) (tail inputs)
+        Yield (output,_) -> output
 
     phaseSettings = [0..4]
 

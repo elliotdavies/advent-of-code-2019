@@ -1,31 +1,33 @@
 module Utils.Intcode
   ( Program
+  , ProgramState(..)
   , Memory
   , parseMemory
   , mkProgram
   , runProgram
   , readMemory
-  , readOutputs
   ) where
 
 import           Data.Digits      (digits, unDigits)
 import qualified Data.Map.Strict  as Map
 import qualified Data.Text        as Text
-import qualified Data.Vector      as V
 import           Prelude          hiding (read, Ordering(..))
 import qualified Prelude          as Prelude
 
 
 type Memory = Map.Map Int Int
-type Outputs = V.Vector Int
 
 data Program = Program
   { instrPtr      :: Int
   , relativeBase  :: Int
   , memory        :: Memory
-  , outputs       :: Outputs
   }
   deriving (Show)
+
+data ProgramState
+  = Halted Program
+  | Await (Int -> Program)
+  | Yield (Int, Program)
 
 parseMemory :: Text.Text -> Memory
 parseMemory = Map.fromList . zip [0..] . fmap (Prelude.read . Text.unpack) . Text.splitOn ","
@@ -37,14 +39,10 @@ mkProgram overrides initialMemory =
     { instrPtr     = 0
     , relativeBase = 0
     , memory       = foldr (\(k,v) acc -> Map.insert k v acc) initialMemory overrides
-    , outputs      = V.empty
     }
 
 readMemory :: Program -> Memory
 readMemory = memory
-
-readOutputs :: Program -> Outputs
-readOutputs = outputs
 
 data Mode
   = Position
@@ -87,65 +85,60 @@ parseOpCode i =
       modes  = fmap mode . drop 2 $ digits'
    in (opCode code, modes ++ (repeat Position))
 
--- Execute a program until it halts. Accepts a program and a list of inputs to
--- be read. Returns the final state including a list of outputs
-runProgram :: Program -> [Int] -> Program
-runProgram program@Program{..} inputs =
+-- Execute a program until it halts, awaits input, or yields output
+runProgram :: Program -> ProgramState
+runProgram program@Program{..} =
   let (code, modes) = parseOpCode (valueAt instrPtr memory)
 
       params n = zip [instrPtr + 1 .. instrPtr + n] modes
 
-      (program', inputs') = case code of
+   in case code of
         Add ->
           let [p1,p2,p3] = params 3
               memory' = write (read p1 + read p2) p3
-           in (program { instrPtr = instrPtr + 4, memory = memory' }, inputs)
+           in runProgram $ program { instrPtr = instrPtr + 4, memory = memory' }
 
         Mul ->
           let [p1,p2,p3] = params 3
               memory' = write (read p1 * read p2) p3
-           in (program { instrPtr = instrPtr + 4, memory = memory' }, inputs)
+           in runProgram $ program { instrPtr = instrPtr + 4, memory = memory' }
 
         In ->
           let [p1] = params 1
-              memory' = write (head inputs) p1
-           in (program { instrPtr = instrPtr + 2, memory = memory' }, tail inputs)
+           in Await $ \input -> 
+                let memory' = write input p1
+                 in program { instrPtr = instrPtr + 2, memory = memory' }
 
         Out ->
           let [p1] = params 1
-              outputs' = V.snoc outputs $ read p1
-           in (program { instrPtr = instrPtr + 2, outputs = outputs' }, inputs)
+           in Yield (read p1, program { instrPtr = instrPtr + 2 })
 
         JmpNZ ->
           let [p1,p2] = params 2
               instrPtr' = if read p1 /= 0 then read p2 else instrPtr + 3
-           in (program { instrPtr = instrPtr' }, inputs)
+           in runProgram $ program { instrPtr = instrPtr' }
 
         JmpZ ->
           let [p1,p2] = params 2
               instrPtr' = if read p1 == 0 then read p2 else instrPtr + 3
-           in (program { instrPtr = instrPtr' }, inputs)
+           in runProgram $ program { instrPtr = instrPtr' }
 
         LT ->
           let [p1,p2,p3] = params 3
               memory' = write (if read p1 < read p2 then 1 else 0) p3
-           in (program { instrPtr = instrPtr + 4, memory = memory' }, inputs)
+           in runProgram $ program { instrPtr = instrPtr + 4, memory = memory' }
 
         Eq ->
           let [p1,p2,p3] = params 3
               memory' = write (if read p1 == read p2 then 1 else 0) p3
-           in (program { instrPtr = instrPtr + 4, memory = memory' }, inputs)
+           in runProgram $ program { instrPtr = instrPtr + 4, memory = memory' }
 
         Rel ->
           let [p1] = params 1
-           in (program { instrPtr = instrPtr + 2, relativeBase = relativeBase + read p1 }, inputs)
+           in runProgram $ program { instrPtr = instrPtr + 2, relativeBase = relativeBase + read p1 }
 
         Halt ->
-          (program, inputs)
-
-  in case code of
-       Halt -> program'
-       _    -> runProgram program' inputs'
+          Halted program
 
   where
     read (i, m) =

@@ -3,11 +3,12 @@ module Day02
   ) where
 
 import qualified Data.Map.Strict as Map
-import qualified Data.Text     as Text
-import qualified Data.Vector   as V
+import qualified Data.Text       as Text
+import qualified Data.Vector     as V
 import           Prelude
 import           Problem
-import           Utils.Intcode (Memory, parseMemory, mkProgram, readMemory, runProgram)
+import           Utils.Intcode   (Memory, Program, ProgramState (..), mkProgram,
+                                  parseMemory, readMemory, runProgram)
 
 
 type In = (Memory, [(Int, Int)])
@@ -26,18 +27,24 @@ parser input =
 
 
 part1 :: Solution In Out
-part1 (memory, inputs) =
-  Map.elems $ readMemory $ runProgram (mkProgram inputs memory) []
+part1 (memory, overrides) =
+  Map.elems $ readMemory $ runUntilHalted (mkProgram overrides memory)
 
+runUntilHalted :: Program -> Program
+runUntilHalted program =
+  case runProgram program of
+    Halted p -> p
+    Await _  -> error "Not expecting input"
+    Yield _  -> error "Not expecting output"
 
 part2 :: Solution In Out
 part2 (memory, _) =
   foldr check [] [[(1,noun),(2, verb)] | noun <- [0..99], verb <- [0..99]]
   where
-    check inputs acc =
-      let program' = runProgram (mkProgram inputs memory) []
+    check overrides acc =
+      let program' = runUntilHalted (mkProgram overrides memory)
        in if readMemory program' Map.! 0 == target
-           then fmap snd inputs
+           then fmap snd overrides
            else acc
 
     target = 19690720

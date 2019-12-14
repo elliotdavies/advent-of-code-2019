@@ -6,8 +6,8 @@ import           Data.Text     (Text)
 import qualified Data.Vector   as V
 import           Prelude
 import           Problem
-import           Utils.Intcode (Program, mkProgram, parseMemory, readOutputs,
-                                runProgram)
+import           Utils.Intcode (Program, ProgramState (..), mkProgram,
+                                parseMemory, runProgram)
 
 type In = Program
 type Out = [Int]
@@ -16,10 +16,18 @@ parser :: Parser In
 parser = mkProgram [] . parseMemory
 
 part1 :: Solution In Out
-part1 program = V.toList $ readOutputs $ runProgram program [1]
+part1 = collectOutputs 1
+
+collectOutputs :: Int -> Program -> [Int]
+collectOutputs input = go [] . runProgram
+  where
+    go outputs = \case
+      Halted _ -> outputs
+      Await continue -> go outputs $ runProgram (continue input)
+      Yield (output, program) -> go (outputs ++ [output]) $ runProgram program
 
 part2 :: Solution In Out
-part2 program = V.toList $ readOutputs $ runProgram program [2]
+part2 = collectOutputs 2
 
 problem :: Problem In Out
 problem =
