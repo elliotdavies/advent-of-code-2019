@@ -2,6 +2,7 @@ module Day14 where
   -- ( problem
   -- ) where
 
+import           Data.List       (foldl')
 import qualified Data.Map.Strict as Map
 import qualified Data.Text       as Text
 import           Prelude
@@ -31,10 +32,10 @@ data State =
     Spares -- Leftover chemicals
 
 part1 :: Solution In Out
-part1 reactions = let (State count _) = generateFuel reactions (State 0 Map.empty) in count
+part1 reactions = let (State count _) = generateFuel reactions 1 in count
 
-generateFuel :: In -> State -> State
-generateFuel reactions state = go state (1, "FUEL")
+generateFuel :: In -> Int -> State
+generateFuel reactions fuel = go (State 0 Map.empty) (fuel, "FUEL")
   where
     go :: State -> (Int, Chemical) -> State
     go (State count spares) (needed, chem) =
@@ -45,7 +46,7 @@ generateFuel reactions state = go state (1, "FUEL")
                      spares'' = Map.insertWith (+) chem leftover spares'
                   in case required of
                       [(n, "ORE")] -> State (count + n) spares''
-                      rest         -> foldl go (State count spares'') rest
+                      rest         -> foldl' go (State count spares'') rest
 
     -- Use previously leftover chemicals if possible
     checkSpares :: Int -> Chemical -> Spares -> (Int, Spares)
@@ -66,15 +67,9 @@ generateFuel reactions state = go state (1, "FUEL")
 
 part2 :: Solution In Out
 part2 reactions =
-  let (State ore spares) = generateFuel reactions (State 0 Map.empty)
-      (iterations, oreRemaining) = trillion `quotRem` ore
-    in iterations + go oreRemaining (Map.map (*iterations) spares)
+  let lowerBound = trillion `div` part1 reactions -- If there were no leftovers this would be the answer
+   in 0 -- TODO Binary search or similar
   where
-    go oreRemaining spares =
-      let (State oreUsed spares') = generateFuel reactions (State 0 spares)
-       in if oreUsed > oreRemaining then 0
-                                    else 1 + go (oreRemaining - oreUsed) spares'
-
     trillion = 1000000000000
 
 problem :: Problem In Out
