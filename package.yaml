@@ -26,6 +26,7 @@ dependencies:
   - containers
   - linear
   - digits
+  - matrix
 
 library:
   source-dirs: src

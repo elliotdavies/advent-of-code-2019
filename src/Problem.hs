@@ -39,9 +39,9 @@ run problem = do
   runExamples pPart1 pParser pPart1Examples
   runInput pPart1 $ pParser input
 
-  putStrLn "Part 2"
-  runExamples pPart2 pParser pPart2Examples
-  runInput pPart2 $ pParser input
+  -- putStrLn "Part 2"
+  -- runExamples pPart2 pParser pPart2Examples
+  -- runInput pPart2 $ pParser input
 
 
 runExamples :: (Eq o, Show o) => Solution i o -> Parser i -> Examples o -> IO ()
