@@ -4,29 +4,20 @@ module Day11
 
 import qualified Data.Map.Strict as Map
 import qualified Data.Text       as Text
-import           Prelude
+import           Linear.V2       (V2(..))
+import           Prelude         hiding (print)
 import           Problem
-import           Utils.Coords    (Coords, Grid, origin)
+import           Utils           (chunksOf, debug)
+import           Utils.Coords    (Coords, Grid, origin, getX, getY)
 import           Utils.Intcode   (Memory, Program, ProgramState (..), mkProgram,
                                   parseMemory, runProgram)
 import           Utils.Move      (Move(..), move)
 
 type In = Memory
-type Out = Int
+type Out = String
 
 parser :: Parser In
 parser = parseMemory
-
-part1 :: Solution In Out
-part1 = Map.size . grid . runUntilHalt initialState . mkProgram []
-  where
-    initialState =
-      State
-      { grid       = Map.empty
-      , coords     = origin
-      , direction  = U
-      , outputType = Color
-      }
 
 data OutputType = Color | Direction
 
@@ -67,8 +58,45 @@ turn 1 L = U
 turn 1 D = L
 turn 1 R = D
 
+part1 :: Solution In Out
+part1 = show . Map.size . grid . runUntilHalt initialState . mkProgram []
+  where
+    initialState =
+      State
+      { grid       = Map.empty
+      , coords     = origin
+      , direction  = U
+      , outputType = Color
+      }
+
 part2 :: Solution In Out
-part2 input = 0
+part2 = printGrid . grid . runUntilHalt initialState . mkProgram []
+  where
+    initialState =
+      State
+      { grid       = Map.singleton origin 1
+      , coords     = origin
+      , direction  = U
+      , outputType = Color
+      }
+
+    printGrid grid =
+      let keys = Map.keys grid
+          maxX = maximum $ getX <$> keys
+          minX = minimum $ getX <$> keys
+          maxY = maximum $ getY <$> keys
+          minY = minimum $ getY <$> keys
+          -- Reverse because in this case the y coords are all negative so the
+          -- image appears upside down
+          coords = [V2 x y | y <- reverse [minY..maxY], x <- [minX..maxX]]
+       in unlines $ fmap printLine $ chunksOf (maxX - minX) $ coords
+      where
+        -- @TODO Refactor grid printing and share with day 08
+        printLine = concat . fmap print
+
+        print cs = case Map.findWithDefault 0 cs grid of
+                     0 -> " "
+                     1 -> "#"
 
 problem :: Problem In Out
 problem =

@@ -8,6 +8,7 @@ import qualified Data.Text   as Text
 import qualified Data.Vector as V
 import           Prelude
 import           Problem
+import           Utils       (chunksOf)
 
 newtype Row = Row { unRow :: [Int] }
   deriving (Show)
@@ -30,12 +31,6 @@ parser input =
     toRows size = fmap (Row . fmap digitToInt) . chunksOf size
 
     toLayers size = fmap Layer . chunksOf size
-
-chunksOf :: Int -> [a] -> [[a]]
-chunksOf n xs =
-  case splitAt n xs of
-    (c, []) -> [c]
-    (c,xs') -> c : chunksOf n xs'
 
 part1 :: Solution In Out
 part1 (Image layers _) =
