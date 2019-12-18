@@ -2,11 +2,11 @@ module Day$DAY
   ( problem
   ) where
 
-import           Data.Text (Text)
+import qualified Data.Text as Text
 import           Prelude
 import           Problem
 
-type In = Text
+type In = Text.Text
 type Out = Int
 
 parser :: Parser In
